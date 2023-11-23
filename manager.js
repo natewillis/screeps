@@ -107,79 +107,64 @@ function getNeededTasks(){
         // get room
         var room = Game.rooms[roomName];
 
-        // all storages
-        var all_storages = room.find(FIND_STRUCTURES, {
-            filter: function(object) {
-                return object.structureType == STRUCTURE_CONTAINER
-            }
-        });
+        // get room objects
+        room.resetTicMemory();
+        var all_storages = room.containers();
+        var storages_with_room = room.containers_with_room();
+        var storages_with_energy = room.containers_with_energy();
+        var sources = room.energy_sources();
+        var structures_needing_energy = room.structures_needing_energy()
 
-        // check for energy storage
-        var storages_with_room = room.find(FIND_STRUCTURES, {
-            filter: function(object) {
-                return object.structureType == STRUCTURE_CONTAINER &&
-                object.store.getFreeCapacity(RESOURCE_ENERGY) > 0
-            }
-        });
-        //console.log(storages_with_room.length + ' storages with room');
+        // for all that need it, figure out where we're getting energy from
+        var energy_sources_to_take_from = [];
+        if (all_storages.length > 0 ) {
+            energy_sources_to_take_from = storages_with_energy;
+        } else {
+            energy_sources_to_take_from = sources;
+        }
 
-        // storages with energy
-        var unsorted_storages_with_energy= room.find(FIND_STRUCTURES, {
-            filter: function(object) {
-                return object.structureType == STRUCTURE_CONTAINER &&
-                object.store.getUsedCapacity(RESOURCE_ENERGY) > 100
-            }
-        });
-        //console.log(unsorted_storages_with_energy.length + ' storages with energy');
-        var storages_with_energy = _.sortBy(unsorted_storages_with_energy, [(storage) => storage.store[RESOURCE_ENERGY]], ['desc']);
-        console.log(storages_with_energy.length + ' storages with energy');
-
-        // get energy sources
-        var sources = room.find(FIND_SOURCES, {
-            filter: (source) => {
-                return (source.id !== '70f9e8c0d2719f4653bad062')
-            }
-        });
+        // init reservations
+        room.resetWorkLocationReservations();
 
         // Harvest
         var targets = [];
         if (all_storages.length > 0 ) {
             targets = storages_with_room;
         } else {
-            targets = room.find(FIND_STRUCTURES, {
-                filter: (structure) => {
-                    return (structure.structureType == STRUCTURE_EXTENSION ||
-                        structure.structureType == STRUCTURE_SPAWN ||
-                        structure.structureType == STRUCTURE_TOWER) &&
-                        structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0;
-                }
-            });
+            targets = structures_needing_energy;
         }
-        
-        for (var targetIndex in targets) {
+        var sequentialTargets = utils.createSequentialTargetLocationArray(targets);
 
-            var target = targets[targetIndex];
-            var targetWorkLocation = utils.getValidWorkLocations(target)[0];
-            var amountNeeded = target.store.getFreeCapacity(RESOURCE_ENERGY) 
-            var maxTasksForTarget = Math.ceil(amountNeeded/100);
-            var currentAssignedToTarget = 0;
-            console.log('we need ' + maxTasksForTarget + ' to fill ' + target.id);
+        // get all sources
+        var sequentialSources = utils.createSequentialTargetLocationArray(sources);
 
-            for (var sourceIndex in sources) {
-                
-                var source = sources[sourceIndex];
-                var sourceWorkLocations = utils.getValidWorkLocations(source);
-                for (var sourceWorkLocationIndex in sourceWorkLocations) {
-                    if (currentAssignedToTarget<maxTasksForTarget) {
-                        currentAssignedToTarget++;
-                        var sourceWorkLocation = sourceWorkLocations[sourceWorkLocationIndex];
-                    
-                        var harvestTask = new TaskHarvest(source, sourceWorkLocation, target, targetWorkLocation);
-                        tasks[harvestTask.taskKey()] = harvestTask;
-                    }
+        // assign each source to only one target if we have one
+        var energyTracker = {};
+        var currentTarget = 0;
+        for (var sequentialSourceIndex in sequentialSources) {
+            var source = sequentialSources[sequentialSourceIndex].target;
+            var sourceWorkLocation = sequentialSources[sequentialSourceIndex].workLocation;
+            
+            while (currentTarget < (sequentialTargets.length - 1)) {
+
+                // get target out of sequential array
+                var target = sequentialTargets[sequentialSourceIndex].target;
+                var targetWorkLocation = sequentialTargets[sequentialSourceIndex].workLocation;
+
+                if (!(target.id in energyTracker)) {
+                    energyTracker[target.id] = target.store.getFreeCapacity(RESOURCE_ENERGY);
+                }
+
+                // create task
+                if (energyTracker[target.id]>0) {
+                    energyTracker[target.id] = energyTracker[target.id] - 100;
+                    var harvestTask = new TaskHarvest(source, sourceWorkLocation, target, targetWorkLocation);
+                    tasks[harvestTask.taskKey()] = harvestTask;
                 }
                 
+
             }
+
         }
 
         // Build

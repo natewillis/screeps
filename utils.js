@@ -90,4 +90,50 @@ function coerceRoomPosition(posLikeObject) {
     return new RoomPosition(posLikeObject.x, posLikeObject.y, posLikeObject.roomName);
 }
 
-module.exports = { getPath, moveAlongPath, getValidWorkLocations, getEnergyFromSource, coerceRoomPosition };
+function createSequentialTargetLocationArray(targets, forContainerDeposit = false) {
+    
+    var returnArray = [];
+    for (var targetIndex in targets) {
+        var target = targets[targetIndex];
+        var validWorkLocations = getValidWorkLocations(target);
+        var currentEnergy = 100000;
+        if (forContainerDeposit) {
+            if ('structureType' in target) {
+                currentEnergy = target.store.getFreeCapacity(RESOURCE_ENERGY);
+            }
+        }
+        for (var validWorkLocationIndex in validWorkLocations) {
+
+            // valid calcs if needed
+            var validLocation = true;
+            if (forContainerDeposit) {
+                var validLocation = false;
+                if (currentEnergy>0) {
+                    validLocation = true;
+                }
+            } else {
+                validLocation = true;
+            }
+
+            if (validLocation) {
+
+                // valid calcs
+                if (forContainerDeposit) {
+                    currentEnergy = currentEnergy - 100;
+                }
+
+                // create location
+                var validWorkLocation = validWorkLocations[validWorkLocationIndex];
+                returnArray.push({
+                    'workLocation': validWorkLocation,
+                    'target': target
+                })
+            }
+            
+        }
+    }
+    return returnArray;
+    
+}
+
+module.exports = { getPath, moveAlongPath, getValidWorkLocations, getEnergyFromSource, coerceRoomPosition,createSequentialTargetLocationArray };

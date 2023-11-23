@@ -4,17 +4,15 @@ var TaskCreepTask = require('task.CreepTask')
 
 class TaskSourceTarget extends TaskCreepTask {
 
-    constructor(source, sourceWorkLocation, target, targetWorkLocation) {
+    constructor(sources, target) {
         super();
-        this.source = source;
-        this.sourceWorkLocation = utils.coerceRoomPosition(sourceWorkLocation);
+        this.sources = sources;
         this.target = target;
-        this.targetWorkLocation = utils.coerceRoomPosition(targetWorkLocation);
         this.taskType = 'unknown'
     }
 
     taskKey() {
-        return [this.taskType, this.source.id, this.sourceWorkLocation.x,this.sourceWorkLocation.y ,this.target.id, this.targetWorkLocation.x, this.targetWorkLocation.y].join('-');
+        return [this.taskType, this.source.id].join('-');
     }
 
     runTask() {
@@ -35,8 +33,13 @@ class TaskSourceTarget extends TaskCreepTask {
                     creep.memory.task.gettingEnergy = false;
                 } else {
                     if (!creep.pos.isEqualTo(this.sourceWorkLocation)) {
-                        var path = utils.getPath(creep.memory.task.startPos, this.sourceWorkLocation);
-                        var moveReturn = utils.moveAlongPath(creep, path, this.source);
+                        if (!utils.coerceRoomPosition(creep.memory.task.startPos).isEqualTo(this.sourceWorkLocation)) {
+                            var path = utils.getPath(creep.memory.task.startPos, this.sourceWorkLocation);
+                            var moveReturn = utils.moveAlongPath(creep, path, this.source);
+                        } else {
+                            creep.moveTo(this.sourceWorkLocation);
+                        }
+                        
                     }
                     if (creep.pos.inRangeTo(this.source, 1)) {
                         utils.getEnergyFromSource(creep, this.source);
