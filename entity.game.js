@@ -1,4 +1,3 @@
-require('entity.spawn');
 
 // update prototypes
 Game.prototype.loadMemory = function() {
@@ -7,10 +6,6 @@ Game.prototype.loadMemory = function() {
     for (spawn of Game.spawns){
         spawn.loadMemory()
     }
-
-    //for (creep of Game.creeps) {
-    //    creep.loadMemory()
-    //}
 
 }
 
@@ -22,9 +17,6 @@ Game.prototype.storeMemory = function() {
         spawn.storeMemory()
     }
 
-    //for (creep of Game.creeps) {
-    //    creep.storeMemory()
-    //}
 }
 
 
@@ -34,4 +26,4 @@ Game.prototype.storeMemory = function() {
 
 
 
-module.exports = {}
+module.export = {}

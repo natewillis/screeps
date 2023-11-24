@@ -3,9 +3,10 @@
 plan = function() {
 
     // spawn test
+    console.log('plan');
     
 }
 
 
 
-modules.export = plan;
+module.exports.plan = plan;

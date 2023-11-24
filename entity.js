@@ -42,7 +42,7 @@ class StateQueue {
     toJSON() {
         console.log('statequeue tojson');
         let serialized = {};
-        for (const state of this.queue) {
+        for (const state of Object.values(this.queue)) {
             serialized[state.tic]  = state.toJSON();
         }
         return serialized;
@@ -59,6 +59,22 @@ class StateQueue {
 
     addState(state) {
         this.queue[state.tic] = state
+    }
+
+    getLatestStateTic() {
+        if (Object.keys(this.queue).length === 0) {
+            return null;
+        } else {
+            return Math.max(...Object.keys(this.queue).map(Number));
+        }
+    }
+
+    getQueue() {
+        return this.queue;
+    }
+
+    clearQueue(){
+        Object.keys(this.queue).forEach(key => delete this.queue[key]);
     }
 }
 
